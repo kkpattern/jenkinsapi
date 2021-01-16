@@ -192,7 +192,41 @@ class Jobs(object):
         )
         # Reset to get it refreshed from Jenkins
         self._data = []
+        return self._scan_multibranch_pipeline(job_name,
+                                               block=block,
+                                               delay=delay)
 
+    def update_multibranch_pipeline(self, job_name, config, block=True, delay=60):
+        """
+        Update an existing multibranch pipeline job
+
+        :param str jobname: Name of the job
+        :param str config: New XML configuration of the job
+        :param block: block until scan is finished?
+        :param delay: max delay to wait for scan to finish (seconds)
+        :returns list of new Jobs after scan
+        """
+        if not config:
+            raise JenkinsAPIException('Job XML config cannot be empty')
+
+        try:
+            if isinstance(config, unicode):  # pylint: disable=undefined-variable
+                config = str(config)
+        except NameError:
+            # Python2 already a str
+            pass
+        self.jenkins.requester.post_and_confirm_status(
+            '{}/job/{}/config.xml'.format(self.jenkins.baseurl, job_name),
+            data=config,
+            params={}
+        )
+        # Reset to get it refreshed from Jenkins
+        self._data = []
+        return self._scan_multibranch_pipeline(job_name,
+                                               block=block,
+                                               delay=delay)
+
+    def _scan_multibranch_pipeline(self, job_name, block=True, delay=60):
         # Launch a first scan / indexing to discover the branches...
         self.jenkins.requester.post_and_confirm_status(
             '{}/job/{}/build'.format(self.jenkins.baseurl, job_name),
